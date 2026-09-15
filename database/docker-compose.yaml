@@ -1,0 +1,19 @@
+services:
+  inventory-database:
+    container_name: inventory-database
+    build: .
+    env_file:
+      .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASS}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      # using default port, change to different port if needed to
+      - "5432:5432"
+    volumes:
+      - inventory:/var/lib/postgresql/data
+
+
+volumes:
+ inventory:
