@@ -17,3 +17,7 @@ env file : .env
 
 env file:
 make sure to create a .env file in database directory. The example env should be found in .env-example
+
+
+command
+in database folder: docker compose up --build
