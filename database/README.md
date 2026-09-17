@@ -17,3 +17,8 @@ env file : .env
 
 env file:
 make sure to create a .env file in database directory. The example env should be found in .env-example
+
+# fake data for development environment
+to create database with fake items and inventories:
+Run the following
+docker compose -f docker-compose_test.yaml up --build
