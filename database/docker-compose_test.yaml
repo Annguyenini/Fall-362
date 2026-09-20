@@ -1,0 +1,19 @@
+services:
+  inventory-database-test:
+    container_name: inventory-database-test
+    # using docker file in fake fir
+    build:
+       dockerfile: fake/Dockerfile
+    env_file:
+      .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASS}
+      POSTGRES_DB: ${DATABASE_NAME}
+
+    ports:
+      # using different port to not have conflict or dont even map port
+      - "5435:5432"
+
+# no volume, data go wipe if kill and load the default fake data when created
+#
