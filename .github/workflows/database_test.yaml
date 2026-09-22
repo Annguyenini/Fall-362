@@ -1,0 +1,22 @@
+name: Database test
+run-name: ${{ github_actor }} is running database test
+on: [push]
+jobs:
+  runs-on: ubuntu-latest
+  env:
+    DATABASE_NAME: inventory
+    DATABASE_USER: admin
+    DATABASE_PASS: password
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Building database container
+      run: |
+        docker compose -f docker-compose_test.yaml down -v
+        docker compose -f docker-compose_test.yaml up --build
+
+    - name: Running test
+      run: |
+        chmod +x .github/cicd-tests/database_test.sh
+        bash .github.cicd-tests/database_test.sh
