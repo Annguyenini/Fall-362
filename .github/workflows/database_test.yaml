@@ -1,7 +1,7 @@
 # testing the database connection and checking get data
 
 name: Database test
-run-name: ${{ github_actor }} is running database test
+run-name:  is running database test
 ## only run if push code to database or main branch
 on:
   push:
@@ -10,9 +10,6 @@ on:
 jobs:
   database-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./back-end
     env:
       DATABASE_NAME: inventory
       DATABASE_USER: admin
@@ -21,17 +18,25 @@ jobs:
       POSTGRES_DB: inventory
       POSTGRES_PASSWORD: password
       POSTGRES_PORT: 5435
-      POSEGRES_HOST: localhost
+      POSTGRES_HOST: localhost
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          psql --version
       - name: Building database container
         run: |
-          docker compose -f docker-compose_test.yaml down -v
-          docker compose -f docker-compose_test.yaml up --build
+          docker compose -f database/docker-compose_test.yaml down -v
+          docker compose -f database/docker-compose_test.yaml up --build -d
+      - name: Check database container
+        run: |
+          docker compose -f database/docker-compose_test.yaml ps
+          docker ps
 
       - name: Running test
         run: |
           chmod +x .github/cicd-tests/database_test.sh
-          bash .github.cicd-tests/database_test.sh
+          bash .github/cicd-tests/database_test.sh

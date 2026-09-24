@@ -1,7 +1,7 @@
 ## linter
 #
 name: Evironment testing for Backend
-run-name: ${{ github_actor }} running eviroment testing
+run-name:  running eviroment testing
 ## only run on main, back-end branch
 on:
   push:
@@ -19,12 +19,8 @@ jobs:
 
       - name: Create python environment
         run: |
-
             python3 -m venv venv
-            source venv/bin/activate
-
-            pip install -r requirements.txt
-
+            ./venv/bin/pip install -r requirements.txt
       - name: Running linter
         run: |
-            ruff check .
+          ./venv/bin/ruff check .

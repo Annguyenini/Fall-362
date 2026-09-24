@@ -4,8 +4,6 @@ services:
     # using docker file in fake fir
     build:
        dockerfile: fake/Dockerfile
-    env_file:
-      .env
     environment:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASS}
