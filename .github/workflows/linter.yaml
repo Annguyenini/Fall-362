@@ -1,0 +1,27 @@
+## linter
+#
+name: Evironment testing for Backend
+run-name: ${{ github_actor }} running eviroment testing
+on: [push]
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./back-end
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create python environment
+        run: |
+
+            python3 -m venv venv
+            source venv/bin/activate
+
+            pip install -r requirements.txt
+
+      - name: Running linter
+        run: |
+            ruff check .
