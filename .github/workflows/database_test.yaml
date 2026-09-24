@@ -2,7 +2,11 @@
 
 name: Database test
 run-name: ${{ github_actor }} is running database test
-on: [push]
+## only run if push code to database or main branch
+on:
+  push:
+    branches: [database,main]
+
 jobs:
   database-test:
     runs-on: ubuntu-latest

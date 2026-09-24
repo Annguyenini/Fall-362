@@ -2,7 +2,10 @@
 #
 name: Evironment testing for Backend
 run-name: ${{ github_actor }} running eviroment testing
-on: [push]
+## only run on main, back-end branch
+on:
+  push:
+    branches: [back-end,main]
 jobs:
   build-backend:
     runs-on: ubuntu-latest
