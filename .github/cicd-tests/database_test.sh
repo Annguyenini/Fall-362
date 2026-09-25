@@ -45,7 +45,7 @@ else
     exit 1
 fi
 
-inventory_test=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -t -A -q -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -p "$POSTGRES_PORT" -c "SELECT count(*) FROM inventory_test;")
+inventory_test=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -t -A -q -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -p "$POSTGRES_PORT" -c "SELECT count(*) FROM inventory;")
 echo "$inventory_test"
 
 if [ "$inventory_test" -gt 0 ] 2>/dev/null; then
@@ -55,5 +55,21 @@ else
     exit 1
 fi
 
-echo "PASS"
+echo "checking constraints"
+inventory_foreign=$( \
+PGPASSWORD="$POSTGRES_PASSWORD" \
+psql -t -A -q -h "$POSTGRES_HOST" \
+-U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+-p "$POSTGRES_PORT" \
+-c "SELECT constraints_name constraints_type
+FROM information_schema.table_constraints
+WHERE table_name = 'inventory';")
+
+if [ "$inventory_foreign" ==]
+echo "checking indexes"
+inventory_index=$( \
+psql -t -A -q -h "$POSTGRES_HOST" \
+-U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+-p "$POSTGRES_PORT" \
+-c"SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'inventory'";   )
 exit 0
