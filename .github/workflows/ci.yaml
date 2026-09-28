@@ -1,7 +1,7 @@
 ## linter
 #
 name: Evironment testing for Backend
-run-name:  running eviroment testing
+run-name: ${{ github_actor }} running eviroment testing
 ## only run on main, back-end branch
 on:
   push:
