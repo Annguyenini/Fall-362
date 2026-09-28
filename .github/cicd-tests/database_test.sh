@@ -56,6 +56,7 @@ else
 fi
 
 echo "checking constraints"
+
 inventory_foreign=$( \
 PGPASSWORD="$POSTGRES_PASSWORD" \
 psql -t -A -q -h "$POSTGRES_HOST" \
@@ -65,7 +66,10 @@ psql -t -A -q -h "$POSTGRES_HOST" \
 FROM information_schema.table_constraints
 WHERE table_name = 'inventory';")
 
-if [ "$inventory_foreign" ==]
+echo inventory_foreign
+
+
+
 echo "checking indexes"
 inventory_index=$( \
 psql -t -A -q -h "$POSTGRES_HOST" \
