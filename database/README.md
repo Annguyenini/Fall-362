@@ -38,5 +38,3 @@ docker compose -f docker-compose_test.yaml up --build
 
 to stop: 
 docker compose -f docker-compose_test.yaml down
-
-
