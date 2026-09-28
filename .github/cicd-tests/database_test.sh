@@ -21,7 +21,6 @@ all_tables=$(PGPASSWORD="$POSTGRES_PASSWORD" psql \
         FROM information_schema.tables
         WHERE table_schema = 'public'
           AND table_type = 'BASE TABLE';")
-echo "$all_tables"
 
 
 
@@ -36,7 +35,6 @@ fi
 
 
 items=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -t -A -q -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -p "$POSTGRES_PORT" -c "SELECT count(*) FROM items;")
-echo "$items"
 
 if [ "$items" -gt 0 ] 2>/dev/null; then
     echo "There are: $items records"
@@ -46,7 +44,6 @@ else
 fi
 
 inventory_test=$(PGPASSWORD="$POSTGRES_PASSWORD" psql -t -A -q -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -p "$POSTGRES_PORT" -c "SELECT count(*) FROM inventory;")
-echo "$inventory_test"
 
 if [ "$inventory_test" -gt 0 ] 2>/dev/null; then
     echo "There are: $inventory_test records"
@@ -55,25 +52,48 @@ else
     exit 1
 fi
 
-echo "checking constraints"
+echo "CHECKING CONSTRAINTS ..."
 
 inventory_foreign=$( \
 PGPASSWORD="$POSTGRES_PASSWORD" \
 psql -t -A -q -h "$POSTGRES_HOST" \
 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 -p "$POSTGRES_PORT" \
--c "SELECT constraints_name constraints_type
+-c "SELECT constraint_name constraint_type
 FROM information_schema.table_constraints
-WHERE table_name = 'inventory';")
-
-echo inventory_foreign
-
+WHERE table_schema = 'public'
+          AND table_name = 'inventory';")
 
 
-echo "checking indexes"
+if [ $? -ne 0 ]; then
+    echo "Failed to retrieve inventory indexes."
+    exit 1
+fi
+
+# if [ "$inventory_foreign" != "inventory_key" ]; then
+#     echo "Invalid inventory constraint"
+#     exit 1
+# fi
+
+echo "CHECKING INDEXES ..."
+
 inventory_index=$( \
+PGPASSWORD="$POSTGRES_PASSWORD" \
 psql -t -A -q -h "$POSTGRES_HOST" \
 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 -p "$POSTGRES_PORT" \
--c"SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'inventory'";   )
+-c"SELECT indexname
+        FROM pg_indexes
+        WHERE schemaname = 'public'
+          AND tablename = 'inventory';"   )
+
+if [ $? -ne 0 ]; then
+    echo "Failed to retrieve inventory indexes."
+    exit 1
+fi
+
+# if [ "$inventory_index" != "item_idx" ]; then
+#     echo "Invalid inventory index"
+#     exit 1
+# fi
 exit 0
