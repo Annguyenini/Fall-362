@@ -1,7 +1,9 @@
 import os
+
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
+
 #read env and load into connection,dictcursor for formatting
 load_dotenv()
 

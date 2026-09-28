@@ -1,7 +1,9 @@
+import uuid
+
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
+
 from db import get_connection
-import uuid
 
 app = FastAPI()
 
@@ -27,8 +29,8 @@ def get_items():
         conn.close()
 
 #Get Specific Item by sku
-@app.get("/items/{sku}")
-def get_items(sku):
+@app.get("/item/{sku}")
+def get_item(sku):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
