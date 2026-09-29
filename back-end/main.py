@@ -1,5 +1,6 @@
 import uuid
 
+import psycopg2
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
@@ -117,9 +118,9 @@ def delete_inventory(inventory_id: str):
     except HTTPException:
         conn.rollback()
         raise
-    except Exception as error:
+    except psycopg2.Error as error:
         conn.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail=f"Could not delete inventory: {str(error)}")
+                            detail=f"Could not delete inventory: {error!s}")
     finally:
         conn.close()
