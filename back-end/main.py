@@ -69,6 +69,14 @@ def create_item(body: ItemCreate):
             conn.commit()
             return {"message": "Item created successfully",
                     "item": new_item}        
+    #Return error if unexpected database error occurs and roll back changes
+    except HTTPException:
+        conn.rollback()
+        raise
+    except psycopg2.Error as error:
+        conn.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Could not create item: {error!s}")
     finally:
         conn.close()
 
