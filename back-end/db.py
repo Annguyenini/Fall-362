@@ -16,3 +16,15 @@ def get_connection():
         password=os.getenv("DATABASE_PASS"),
         cursor_factory=RealDictCursor,
     )
+#dependency to inject into endpoint function. yields the connection to db and when finished commits. rollsback if endpoint raises exception
+def get_db():
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
