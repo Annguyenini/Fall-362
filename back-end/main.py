@@ -117,3 +117,31 @@ def delete_inventory(inventory_id: str, conn: DbConn):
         "deleted_inventory": deleted_inventory,
     }
  
+
+#Return all items and batch records from inventory
+@app.get("/inventory")
+def get_inventory_items(conn: DbConn):
+    with conn.cursor() as cur:
+        cur.execute(
+            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert 
+            FROM inventory 
+            ORDER BY inventory_id, sku, batch_id''')
+        return cur.fetchall()
+
+#Return items and batch record for one inventory from inventory_id 
+@app.get("/inventory/{inventory_id}/items")
+def get_items_in_inventory(inventory_id: str, conn: DbConn):
+    with conn.cursor() as cur:
+    #Verify location exits
+        cur.execute("SELECT inventory_id FROM inventories WHERE inventory_id = %s",(inventory_id,))
+        inventory_location = cur.fetchone()
+        if not inventory_location:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail = f"Inventory with id: {inventory_id} does not exits")
+        #Get items for inventory with matching inventory_id
+        cur.execute(
+            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert
+            FROM inventory
+            WHERE inventory_id = %s
+            ORDER BY sku, batch_id''', (inventory_id,))
+        return cur.fetchall()
