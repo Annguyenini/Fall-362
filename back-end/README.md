@@ -14,7 +14,7 @@ clone repo
 
 set up env in database/back-end like the envexample
 
-use a terminal to start database from /database: docker compose -f docker-compose_test.yaml 
+use a terminal to start database from /database: docker compose -f docker-compose_test.yaml up -d
 
 from back-end start a venv: python -m venv venv
 
