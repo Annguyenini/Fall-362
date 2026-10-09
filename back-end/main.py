@@ -5,7 +5,7 @@ import psycopg2
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 from db import get_db
 
@@ -31,6 +31,14 @@ class ItemCreate(BaseModel):
     sku: int
     title: str
     price: float
+
+#model for stock
+class StockCreate(BaseModel):
+    inventory_id: str
+    sku: int 
+    batch_id: int
+    quantity: PositiveInt
+    shelf: str
 
 @app.get("/")
 async def root():
@@ -77,6 +85,21 @@ def create_item(body: ItemCreate, conn:DbConn):
             )
     return {"message": "Item created successfully", "item": new_item}
 
+#remove item from items
+@app.delete("/item/{sku}")
+def delete_item(sku: int, conn:DbConn):
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM items WHERE sku = %s RETURNING sku, title, price",
+            (sku, ),
+        )
+        deleted_item = cur.fetchone()
+        if not deleted_item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Item with sku: {sku} does not exist",
+            )
+    return {"message": "Item deleted successfully", "deleted_item": deleted_item}
 
 #pass in location to generate new uuid and add a new inventory, returns new id and location
 @app.post("/inventories",status_code=status.HTTP_201_CREATED)
@@ -145,3 +168,16 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
             WHERE inventory_id = %s
             ORDER BY sku, batch_id''', (inventory_id,))
         return cur.fetchall()
+
+#add stock to inventory
+@app.post("/inventory", status_code=status.HTTP_201_CREATED)
+def add_stock(body: StockCreate, conn:DbConn):
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO inventory (inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert)"
+            "VALUES (%s, %s, %s, %s, %s , now(), now())"
+            "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert;",
+            (body.inventory_id, body.sku, body.batch_id, body.quantity, body.shelf),
+        )
+        new_stock = cur.fetchone()
+    return {"message": "Stock added successfully", "stock": new_stock}
