@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import "../styles/inventory.css";
-import inventory_controller from "../core/inventory_controller";
+import ItemsTool from "./tools/items_tool";
 
 type ToolProps = {
   inventoryId: string;
@@ -9,7 +9,7 @@ type ToolProps = {
 type InventoryTool = {
   name: string;
   label: string;
-  render: (props: ToolProps) => React.ReactNode;
+  component: ComponentType<ToolProps>;
 };
 
 type Inventory = {
@@ -31,7 +31,7 @@ export function InventoryScreen({
 
   // Load inventory data
   useEffect(() => {
-    const data = inventory_controller.getInventoryData(inventory_id);
+    // const data = inventory_controller.getInventoryData(inventory_id);
 
   }, [inventory_id]);
 
@@ -45,23 +45,7 @@ export function InventoryScreen({
     addTool({
       name: "items",
       label: "Items",
-      render: ({ inventoryId }) => {
-        // const items =
-        //   inventory_controller.getInventoryItems(inventoryId);
-
-        return (
-          <div>
-            <h2>Items</h2>
-            <p>Inventory ID: {inventoryId}</p>
-
-            {/*{items.map((item: any) => (
-              <div key={item.id}>
-                {item.name}
-              </div>
-            ))}*/}
-          </div>
-        );
-      },
+      component: ItemsTool,
     });
   }, []);
 
@@ -80,9 +64,7 @@ export function InventoryScreen({
               INVENTORY
             </span>
 
-            <h1>
-              {inventory?.name ?? "Loading..."}
-            </h1>
+
 
             {inventory?.description && (
               <p>{inventory.description}</p>
@@ -96,17 +78,8 @@ export function InventoryScreen({
         </div>
 
         <div className="inventory-stats">
-          <div className="inventory-stat">
-            <span>Items</span>
-            <strong>
-              {inventory?.itemCount ?? "—"}
-            </strong>
-          </div>
 
-          <div className="inventory-stat">
-            <span>Status</span>
-            <strong>Active</strong>
-          </div>
+
         </div>
       </header>
 
@@ -131,9 +104,7 @@ export function InventoryScreen({
         {/* RIGHT */}
         <main className="inventory-result">
           {selectedTool ? (
-            selectedTool.render({
-              inventoryId: inventory_id,
-            })
+            <selectedTool.component inventoryId={inventory_id} />
           ) : (
             <div className="empty-result">
               Select a tool
