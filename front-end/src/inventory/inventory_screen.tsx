@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import "../styles/inventory.css";
 import ItemsTool from "./tools/items_tool";
+import AddItem from "./tools/add_item";
 
 type ToolProps = {
   inventoryId: string;
@@ -47,6 +48,11 @@ export function InventoryScreen({
       label: "Items",
       component: ItemsTool,
     });
+    addTool({
+      name: "add item",
+      label: "add item",
+      component: AddItem,
+    })
   }, []);
 
   const selectedTool = tools.find(
