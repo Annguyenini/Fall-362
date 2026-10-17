@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS inventory(
     time_added timestamptz,
     time_alert timestamptz,
     -- CONSTRANT
-    CONSTRAINT inventory_key FOREIGN KEY(inventory_id) REFERENCES inventories (inventory_id)
+    CONSTRAINT inventory_key FOREIGN KEY(inventory_id) REFERENCES inventories (inventory_id),
+    CONSTRAINT inventory_identity UNIQUE (inventory_id, sku, batch_id)
     );
 -- create index
 CREATE INDEX item_idx ON inventory (inventory_id,sku)

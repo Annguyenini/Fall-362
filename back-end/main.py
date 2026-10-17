@@ -173,11 +173,33 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
 @app.post("/inventory", status_code=status.HTTP_201_CREATED)
 def add_stock(body: StockCreate, conn:DbConn):
     with conn.cursor() as cur:
+        try:
+            cur.execute(
+                "INSERT INTO inventory (inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert)"
+                "VALUES (%s, %s, %s, %s, %s , now(), now())"
+                "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert;",
+                (body.inventory_id, body.sku, body.batch_id, body.quantity, body.shelf),
+            )
+            new_stock = cur.fetchone()
+        except psycopg2.errors.UniqueViolation:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Batch {body.batch_id} for sku {body.sku} already exist in inventory"
+            )
+        return {"message": "Stock added successfully", "stock": new_stock}
+@app.delete("/inventory/{inventory_id}/{sku}/{batch_id}")
+def remove_stock(inventory_id: str, sku: int, batch_id: int, conn:DbConn):
+    with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO inventory (inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert)"
-            "VALUES (%s, %s, %s, %s, %s , now(), now())"
-            "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert;",
-            (body.inventory_id, body.sku, body.batch_id, body.quantity, body.shelf),
+            "DELETE FROM inventory " 
+            "WHERE inventory_id = %s AND sku = %s AND batch_id = %s "
+            "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert; ",
+            (inventory_id, sku, batch_id),
         )
-        new_stock = cur.fetchone()
-    return {"message": "Stock added successfully", "stock": new_stock}
+        deleted_stock=cur.fetchone()
+        if not deleted_stock:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No stock found for sku {sku}, batch {batch_id}.",
+            )
+    return {"message": "Stock removed successfully", "deleted_stock": deleted_stock}
