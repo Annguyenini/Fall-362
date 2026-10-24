@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
 import inventory_controller from "../../core/inventory_controller";
-
-type InventoryItem = {
-  inventory_id: string;
-  sku: number;
-  batch_id: number;
-  quantity: number;
-  shelf: string | null;
-  time_added: string | null;
-  time_alert: string | null;
-};
-
+import {InventoryStock} from "../../data-shapes/inventory-stock"
 type ItemsResult = {
-  data: InventoryItem[] | null;
+  data: InventoryStock[] | null;
   error: string | null;
 };
 
