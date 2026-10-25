@@ -2,10 +2,11 @@ import uuid
 from typing import Annotated
 
 import psycopg2
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, ValidationError
+import json 
 
 from db import get_db
 
@@ -39,6 +40,24 @@ class StockCreate(BaseModel):
     batch_id: int
     quantity: PositiveInt
     shelf: str
+#model for item import
+class ImportItem(BaseModel):
+    sku: int
+    title: str
+    price: float
+
+#model for stock import
+class ImportStock(BaseModel):
+    sku: int
+    batch_id: int
+    quantity: PositiveInt
+    shelf: str
+
+#model to import the whole inventory
+class InventoryImport(BaseModel):
+    location: str
+    items: list[ImportItem]
+    stock: list[ImportStock]
 
 @app.get("/")
 async def root():
@@ -187,6 +206,8 @@ def add_stock(body: StockCreate, conn:DbConn):
                 detail=f"Batch {body.batch_id} for sku {body.sku} already exist in inventory"
             )
         return {"message": "Stock added successfully", "stock": new_stock}
+
+#delete stock from inventory
 @app.delete("/inventory/{inventory_id}/{sku}/{batch_id}")
 def remove_stock(inventory_id: str, sku: int, batch_id: int, conn:DbConn):
     with conn.cursor() as cur:
@@ -203,3 +224,53 @@ def remove_stock(inventory_id: str, sku: int, batch_id: int, conn:DbConn):
                 detail=f"No stock found for sku {sku}, batch {batch_id}.",
             )
     return {"message": "Stock removed successfully", "deleted_stock": deleted_stock}
+
+#import inventory
+@app.post("/import", status_code=status.HTTP_201_CREATED)
+async def import_inventory(conn: DbConn, file: UploadFile = File(...)):
+    #read uploaded file bytes and parse as json
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid json file",
+        )
+    #validate with pydantic model
+    try:
+        body = InventoryImport(**data)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=e.errors(),
+        )
+    new_id = str(uuid.uuid4())
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO inventories (inventory_id, location) VALUES (%s, %s);",
+            (new_id, body.location),
+        )
+
+        for item in body.items:
+            cur.execute(
+                "INSERT INTO items (sku,title,price) VALUES (%s, %s, %s) "
+                "ON CONFLICT (sku) DO NOTHING;",
+                (item.sku, item.title, item.price),
+            )
+
+        for s in body.stock:
+            cur.execute(
+                "INSERT INTO inventory "
+                "(inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert) "
+                "VALUES (%s, %s, %s, %s, %s, now(), now());",
+                (new_id, s.sku, s.batch_id, s.quantity, s.shelf),
+            )
+
+        return {
+            "message": "Inventory imported successfully",
+            "inventory_id": new_id,
+            "locatin": body.location,
+            "items_received": len(body.items),
+            "stock_rows_received": len(body.stock),
+        }
