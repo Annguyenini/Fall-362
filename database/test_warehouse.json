@@ -1,0 +1,11 @@
+{
+  "location": "Dallas",
+  "items": [
+    {"sku": 999001, "title": "Brake Pad", "price": 29.99},
+    {"sku": 999002, "title": "Oil Filter", "price": 12.50}
+  ],
+  "stock": [
+    {"sku": 999001, "batch_id": 1, "quantity": 50, "shelf": "A1"},
+    {"sku": 999002, "batch_id": 1, "quantity": 120, "shelf": "B3"}
+  ]
+}
