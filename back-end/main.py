@@ -3,15 +3,23 @@ from typing import Annotated
 
 import psycopg2
 from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
 from pydantic import BaseModel, PositiveInt, ValidationError
-import json 
-
+import json
 from db import get_db
 
 app = FastAPI()
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 #reusable dependency (have to use Annotated to make it compliant with ruff)
 DbConn = Annotated[Connection, Depends(get_db)]
 
@@ -36,7 +44,7 @@ class ItemCreate(BaseModel):
 #model for stock
 class StockCreate(BaseModel):
     inventory_id: str
-    sku: int 
+    sku: int
     batch_id: int
     quantity: PositiveInt
     shelf: str
@@ -83,7 +91,7 @@ def get_item(sku: int, conn: DbConn):
                 detail=f"Item with sku: {sku} does not exist",
             )
         return item
-    
+
 
 #Add new item into items(let primary key enforce uniqueness,psycopg auto throw error if duplicate)
 #Pass in sku,title,price
@@ -158,19 +166,19 @@ def delete_inventory(inventory_id: str, conn: DbConn):
         "message": "Inventory has been deleted successfully",
         "deleted_inventory": deleted_inventory,
     }
- 
+
 
 #Return all items and batch records from inventory
 @app.get("/inventory")
 def get_inventory_items(conn: DbConn):
     with conn.cursor() as cur:
         cur.execute(
-            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert 
-            FROM inventory 
+            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert
+            FROM inventory
             ORDER BY inventory_id, sku, batch_id''')
         return cur.fetchall()
 
-#Return items and batch record for one inventory from inventory_id 
+#Return items and batch record for one inventory from inventory_id
 @app.get("/inventory/{inventory_id}/items")
 def get_items_in_inventory(inventory_id: str, conn: DbConn):
     with conn.cursor() as cur:
@@ -212,7 +220,7 @@ def add_stock(body: StockCreate, conn:DbConn):
 def remove_stock(inventory_id: str, sku: int, batch_id: int, conn:DbConn):
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM inventory " 
+            "DELETE FROM inventory "
             "WHERE inventory_id = %s AND sku = %s AND batch_id = %s "
             "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert; ",
             (inventory_id, sku, batch_id),
