@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import inventory_controller from "../../core/inventory_controller";
-import {InventoryStock} from "../../data-shapes/inventory-stock"
+import type { InventoryStock } from "../../data-shapes/inventory-stock";
+
+type ItemDetails = { sku: number; title: string; price: number };
 type ItemsResult = {
   data: InventoryStock[] | null;
   error: string | null;
@@ -12,6 +14,10 @@ type ItemsToolProps = {
 
 export default function ItemsTool({ inventoryId }: ItemsToolProps) {
   const [result, setResult] = useState<ItemsResult | null>(null);
+  const [selectedSku, setSelectedSku] = useState<number | null>(null);
+  const [itemDetails, setItemDetails] = useState<ItemDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +43,30 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
       cancelled = true;
     };
   }, [inventoryId]);
+
+  useEffect(() => {
+    if (selectedSku === null) {
+      setItemDetails(null);
+      setDetailsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setDetailsLoading(true);
+    setItemDetails(null);
+    setDetailsError(null);
+
+    inventory_controller.getItem(selectedSku)
+      .then((item) => { if (!cancelled) setItemDetails(item); })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDetailsError(error instanceof Error ? error.message : "Failed to load item details.");
+        }
+      })
+      .finally(() => { if (!cancelled) setDetailsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [selectedSku]);
 
   if (!result?.data || result.error) {
     return (
@@ -68,7 +98,17 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
           <tbody>
             {result.data.map((item) => (
               <tr key={`${item.inventory_id}-${item.sku}-${item.batch_id}`}>
-                <td>{item.sku}</td>
+                <td>
+                  <button
+                    className="item-sku-button"
+                    type="button"
+                    aria-label={`View details for SKU ${item.sku}`}
+                    aria-pressed={selectedSku === item.sku}
+                    onClick={() => setSelectedSku((current) => current === item.sku ? null : item.sku)}
+                  >
+                    {item.sku}
+                  </button>
+                </td>
                 <td>{item.batch_id}</td>
                 <td>{item.quantity}</td>
                 <td>{item.shelf ?? "—"}</td>
@@ -79,6 +119,25 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
           </tbody>
         </table>
       </div>
+      {selectedSku !== null && (
+        <section className="item-details" aria-live="polite" aria-labelledby="item-details-title">
+          <div className="item-details-heading">
+            <h3 id="item-details-title">Item details</h3>
+            <button type="button" className="item-details-close" onClick={() => setSelectedSku(null)}>
+              Close
+            </button>
+          </div>
+          {detailsLoading && <p role="status">Loading item details…</p>}
+          {detailsError && <p className="item-details-error" role="alert">{detailsError}</p>}
+          {itemDetails && (
+            <dl className="item-details-grid">
+              <div><dt>SKU</dt><dd>{itemDetails.sku}</dd></div>
+              <div><dt>Title</dt><dd>{itemDetails.title}</dd></div>
+              <div><dt>Price</dt><dd>{new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(itemDetails.price)}</dd></div>
+            </dl>
+          )}
+        </section>
+      )}
     </div>
   );
 }
