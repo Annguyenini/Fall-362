@@ -1,0 +1,167 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500&display=swap");
+
+:root {
+  --ink: #1b2733;
+  --ink-soft: #52606d;
+  --paper: #f5f7f9;
+  --panel: #ffffff;
+  --line: #d5dce3;
+  --signal: #f2b705;   /* safety yellow, used for the one thing that matters */
+  --signal-ink: #3a2c00;
+  --danger: #b3261e;
+
+  --font-head: "Archivo", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
+}
+
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* Header */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.brand {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 1.35rem;
+  text-decoration: none;
+}
+nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+nav a {
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+nav a:hover { border-bottom-color: var(--line); }
+nav a[aria-current="page"] { border-bottom-color: var(--signal); }
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: start;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.hero h1 {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem;
+  max-width: 14ch;
+}
+.hero p { color: var(--ink-soft); max-width: 46ch; margin: 0 0 1.75rem; }
+
+.actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+  transition: background-color 0.15s;
+}
+.btn-primary { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+.btn-primary:hover { background: #ffc928; }
+.btn-secondary { background: transparent; }
+.btn-secondary:hover { background: var(--ink); color: var(--paper); }
+
+/* Stock board */
+.stock-board {
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+.stock-board h2 {
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+.board-list { list-style: none; margin: 0; padding: 0; }
+.board-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--line);
+}
+.board-list .item-name { font-weight: 500; }
+.board-list .item-meta { color: var(--ink-soft); font-size: 0.9rem; }
+.board-list .qty { font-family: var(--font-head); font-weight: 700; white-space: nowrap; }
+.board-list .qty.out { color: var(--danger); }
+.board-empty { color: var(--ink-soft); }
+.board-link { display: inline-block; margin-top: 0.75rem; font-weight: 500; }
+
+/* Summary strip */
+.summary {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3rem) 3rem;
+}
+.summary dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+  border-top: 2px solid var(--ink);
+}
+.summary dl > div { padding: 1rem 1rem 1rem 0; }
+.summary dt { color: var(--ink-soft); font-size: 0.95rem; }
+.summary dd {
+  margin: 0;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.75rem;
+}
+.status-msg { color: var(--danger); min-height: 1.5em; margin: 0.5rem 0 0; }
+
+.site-footer {
+  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.site-footer p { margin: 0; }
+
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; }
+  .site-header { flex-direction: column; align-items: flex-start; }
+}
+
+:root {
+  color-scheme: dark;
+  --ink: #e8edf2;
+  --ink-soft: #9aa7b4;
+  --paper: #0b0f14;
+  --panel: #151b22;
+  --line: #2a333d;
+  --danger: #ff6b61;
+}
+
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+}

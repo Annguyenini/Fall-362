@@ -1,20 +1,18 @@
-import { useState } from 'react'
-
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import './App.css'
-import InventoryScreen from './inventory/inventory_screen';
+import Home from './pages/Home';
 import InventoryPage from './pages/inventory_page';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <BrowserRouter>
-          <Routes>
-            <Route path="/inventory" element={<InventoryPage/>} />
-          </Routes>
-        </BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
