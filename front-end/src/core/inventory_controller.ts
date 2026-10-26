@@ -5,9 +5,22 @@ class InventoryController{
   // this class will manage calling backend feature related to a specific InventoryController
   //
   //
-  async getInventoryData(inventory_id: string) {
-
+  async getInventories() {
+    const response = await fetch(API.GET_INVENTORIES_API(), { method: "GET" });
+    if (!response.ok) {
+      throw new Error("Failed to load inventories");
+    }
+    return await response.json() as { inventory_id: string; location: string }[];
   }
+
+  async getItem(sku: number) {
+    const response = await fetch(API.GET_ITEM_API(sku), { method: "GET" });
+    if (!response.ok) {
+      throw new Error(response.status === 404 ? "Item not found." : "Failed to load item details.");
+    }
+    return await response.json() as { sku: number; title: string; price: number };
+  }
+
   async getInventoryItems(inventory_id: string) {
     try {
       const response = await fetch(API.GET_ITEMS_FROM_INVENTORY_API(inventory_id), ({

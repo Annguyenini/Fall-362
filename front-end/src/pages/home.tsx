@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import inventoryController from "../core/inventory_controller";
 import "./home.css";
+
+type Inventory = { inventory_id: string; location: string };
 
 // Sample data for now. Swap for backend data later.
 const lowStock = [
@@ -12,13 +16,26 @@ const lowStock = [
 const summary = { total: 0, low: 0, out: 0, categories: 0 };
 
 export default function Home() {
+  const [inventories, setInventories] = useState<Inventory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    inventoryController.getInventories()
+      .then((data) => { if (!cancelled) setInventories(data); })
+      .catch(() => { if (!cancelled) setError("Could not load inventories. Please try again."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <>
 <header className="site-header">
   <Link className="brand" to="/home">Inventory</Link>
   <nav aria-label="Main">
     <NavLink to="/home">Home</NavLink>
-    <NavLink to="/inventory">Inventory</NavLink>
+    <NavLink to="/home#inventories">Inventory</NavLink>
   </nav>
 </header>
 
@@ -28,12 +45,12 @@ export default function Home() {
             <h1>Inventory Management</h1>
             <p>Track stock levels, catch low items early, and keep every count in one place.</p>
             <div className="actions">
-              <Link className="btn btn-primary" to="/inventory">View inventory</Link>
-              <Link className="btn btn-secondary" to="/add-item">Add an item</Link>
+              <Link className="btn btn-primary" to="/home#inventories">View inventory</Link>
+              {/*<Link className="btn btn-secondary" to="/add-item">Add an item</Link>*/}
             </div>
           </div>
 
-          <aside className="stock-board" aria-labelledby="board-title">
+          {/*<aside className="stock-board" aria-labelledby="board-title">
             <h2 id="board-title">Needs restocking</h2>
             <ul className="board-list">
               {lowStock.map((item) => (
@@ -49,17 +66,44 @@ export default function Home() {
               ))}
             </ul>
             <Link className="board-link" to="/inventory?filter=low">See all low stock</Link>
-          </aside>
+          </aside>*/}
         </section>
 
-        <section className="summary" aria-label="Inventory summary">
+        <section className="inventory-list" id="inventories" aria-labelledby="inventories-title">
+          <div className="inventory-list-heading">
+            <div>
+              <h2 id="inventories-title">Your inventories</h2>
+              <p>Select a location to view its stock.</p>
+            </div>
+          </div>
+          {loading ? <p role="status">Loading inventories…</p> : null}
+          {error ? <p className="status-msg" role="alert">{error}</p> : null}
+          {!loading && !error && inventories.length === 0 ? <p>No inventories found.</p> : null}
+          {!loading && !error && inventories.length > 0 ? (
+            <div className="inventory-cards">
+              {inventories.map((inventory) => (
+                <Link
+                  className="inventory-card"
+                  key={inventory.inventory_id}
+                  to={`/inventory?inventory_id=${encodeURIComponent(inventory.inventory_id)}`}
+                >
+                  <span className="inventory-card-label">Inventory location</span>
+                  <strong>{inventory.location}</strong>
+                  <span className="inventory-card-action">View inventory <span aria-hidden="true">→</span></span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        {/*<section className="summary" aria-label="Inventory summary">
           <dl>
             <div><dt>Total items</dt><dd>{summary.total}</dd></div>
             <div><dt>Low stock</dt><dd>{summary.low}</dd></div>
             <div><dt>Out of stock</dt><dd>{summary.out}</dd></div>
             <div><dt>Categories</dt><dd>{summary.categories}</dd></div>
           </dl>
-        </section>
+        </section>*/}
       </main>
 
       <footer className="site-footer"><p>StockRoom inventory system</p></footer>

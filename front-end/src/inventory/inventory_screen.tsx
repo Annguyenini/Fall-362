@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentType } from "react";
+import { Link } from "react-router-dom";
 import "../styles/inventory.css";
 import ItemsTool from "./tools/items_tool";
 import AddItem from "./tools/add_item";
@@ -65,6 +66,9 @@ export function InventoryScreen({
       {/* TOP INVENTORY PANEL */}
       <header className="inventory-header">
         <div className="inventory-header-main">
+          <Link className="inventory-home-link" to="/home" aria-label="Go back home">
+            Home
+          </Link>
           <div>
             <span className="inventory-label">
               INVENTORY

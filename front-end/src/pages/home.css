@@ -116,6 +116,42 @@ nav a[aria-current="page"] { border-bottom-color: var(--signal); }
 .board-empty { color: var(--ink-soft); }
 .board-link { display: inline-block; margin-top: 0.75rem; font-weight: 500; }
 
+.inventory-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3rem) 3rem;
+  scroll-margin-top: 1rem;
+}
+.inventory-list-heading { margin-bottom: 1rem; }
+.inventory-list-heading h2 {
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+.inventory-list-heading p { color: var(--ink-soft); }
+.inventory-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.inventory-card {
+  display: flex;
+  min-height: 155px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  text-decoration: none;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.inventory-card:hover { transform: translateY(-2px); border-color: var(--signal); }
+.inventory-card-label { color: var(--ink-soft); font-size: 0.85rem; }
+.inventory-card strong { font-family: var(--font-head); font-size: 1.15rem; }
+.inventory-card-action { margin-top: auto; color: var(--signal); font-weight: 500; }
+
 /* Summary strip */
 .summary {
   max-width: 1200px;
