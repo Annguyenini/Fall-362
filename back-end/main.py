@@ -1,14 +1,15 @@
+import json
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 import psycopg2
-from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
 from pydantic import BaseModel, PositiveInt, ValidationError
-import json
-from datetime import datetime
+
 from db import get_db
 
 app = FastAPI()
@@ -262,7 +263,7 @@ def remove_stock(inventory_id: str, sku: int, conn:DbConn):
 
 #import inventory
 @app.post("/import", status_code=status.HTTP_201_CREATED)
-async def import_inventory(conn: DbConn, file: UploadFile = File(...)):
+async def import_inventory(conn: DbConn, file: UploadFile):
     #read uploaded file bytes and parse as json
     raw = await file.read()
     try:
