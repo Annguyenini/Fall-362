@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
 from pydantic import BaseModel, PositiveInt, ValidationError
 import json
+from datetime import datetime
 from db import get_db
 
 app = FastAPI()
@@ -45,9 +46,15 @@ class ItemCreate(BaseModel):
 class StockCreate(BaseModel):
     inventory_id: str
     sku: int
-    batch_id: int
     quantity: PositiveInt
     shelf: str
+    time_alert: datetime | None = None
+
+#model for modifying a stock row
+class StockUpdate(BaseModel):
+    quantity: PositiveInt | None = None
+    time_alert: datetime | None = None
+
 #model for item import
 class ImportItem(BaseModel):
     sku: int
@@ -57,7 +64,6 @@ class ImportItem(BaseModel):
 #model for stock import
 class ImportStock(BaseModel):
     sku: int
-    batch_id: int
     quantity: PositiveInt
     shelf: str
 
@@ -168,17 +174,17 @@ def delete_inventory(inventory_id: str, conn: DbConn):
     }
 
 
-#Return all items and batch records from inventory
+#Return all stock rows from inventory
 @app.get("/inventory")
 def get_inventory_items(conn: DbConn):
     with conn.cursor() as cur:
         cur.execute(
-            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert
+            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
             FROM inventory
-            ORDER BY inventory_id, sku, batch_id''')
+            ORDER BY inventory_id, sku''')
         return cur.fetchall()
 
-#Return items and batch record for one inventory from inventory_id
+#Return stock rows for one inventory from inventory_id
 @app.get("/inventory/{inventory_id}/items")
 def get_items_in_inventory(inventory_id: str, conn: DbConn):
     with conn.cursor() as cur:
@@ -188,50 +194,71 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
         if not inventory_location:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail = f"Inventory with id: {inventory_id} does not exits")
-        #Get items for inventory with matching inventory_id
+        #Get stock rows for inventory with matching inventory_id
         cur.execute(
-            '''SELECT inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert
+            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
             FROM inventory
             WHERE inventory_id = %s
-            ORDER BY sku, batch_id''', (inventory_id,))
+            ORDER BY sku''', (inventory_id,))
         return cur.fetchall()
 
-#add stock to inventory
+#add stock to inventory (one row per item per location).
+#if the item already exists at this inventory, add to its quantity and refresh the dates.
 @app.post("/inventory", status_code=status.HTTP_201_CREATED)
 def add_stock(body: StockCreate, conn:DbConn):
     with conn.cursor() as cur:
-        try:
-            cur.execute(
-                "INSERT INTO inventory (inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert)"
-                "VALUES (%s, %s, %s, %s, %s , now(), now())"
-                "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert;",
-                (body.inventory_id, body.sku, body.batch_id, body.quantity, body.shelf),
-            )
-            new_stock = cur.fetchone()
-        except psycopg2.errors.UniqueViolation:
+        cur.execute(
+            "INSERT INTO inventory (inventory_id, sku, quantity, shelf, time_added, time_alert) "
+            "VALUES (%s, %s, %s, %s, now(), %s) "
+            "ON CONFLICT (inventory_id, sku) DO UPDATE "
+            "SET quantity = inventory.quantity + EXCLUDED.quantity, "
+            "shelf = EXCLUDED.shelf, "
+            "time_added = now(), "
+            "time_alert = COALESCE(EXCLUDED.time_alert, inventory.time_alert) "
+            "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
+            (body.inventory_id, body.sku, body.quantity, body.shelf, body.time_alert),
+        )
+        new_stock = cur.fetchone()
+    return {"message": "Stock added successfully", "stock": new_stock}
+
+#modify an existing stock row: set quantity and/or time_alert
+@app.patch("/inventory/{inventory_id}/{sku}")
+def modify_stock(inventory_id: str, sku: int, body: StockUpdate, conn: DbConn):
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE inventory "
+            "SET quantity = COALESCE(%s, quantity), "
+            "time_alert = COALESCE(%s, time_alert) "
+            "WHERE inventory_id = %s AND sku = %s "
+            "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
+            (body.quantity, body.time_alert, inventory_id, sku),
+        )
+        updated_stock = cur.fetchone()
+        if not updated_stock:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Batch {body.batch_id} for sku {body.sku} already exist in inventory"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No stock found for sku {sku} at this inventory.",
             )
-        return {"message": "Stock added successfully", "stock": new_stock}
+    return {"message": "Stock updated successfully", "stock": updated_stock}
 
 #delete stock from inventory
-@app.delete("/inventory/{inventory_id}/{sku}/{batch_id}")
-def remove_stock(inventory_id: str, sku: int, batch_id: int, conn:DbConn):
+@app.delete("/inventory/{inventory_id}/{sku}")
+def remove_stock(inventory_id: str, sku: int, conn:DbConn):
     with conn.cursor() as cur:
         cur.execute(
             "DELETE FROM inventory "
-            "WHERE inventory_id = %s AND sku = %s AND batch_id = %s "
-            "RETURNING inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert; ",
-            (inventory_id, sku, batch_id),
+            "WHERE inventory_id = %s AND sku = %s "
+            "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
+            (inventory_id, sku),
         )
         deleted_stock=cur.fetchone()
         if not deleted_stock:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No stock found for sku {sku}, batch {batch_id}.",
+                detail=f"No stock found for sku {sku} at this inventory.",
             )
     return {"message": "Stock removed successfully", "deleted_stock": deleted_stock}
+
 
 #import inventory
 @app.post("/import", status_code=status.HTTP_201_CREATED)
@@ -259,26 +286,29 @@ async def import_inventory(conn: DbConn, file: UploadFile = File(...)):
             "INSERT INTO inventories (inventory_id, location) VALUES (%s, %s);",
             (new_id, body.location),
         )
-
+ 
         for item in body.items:
             cur.execute(
                 "INSERT INTO items (sku,title,price) VALUES (%s, %s, %s) "
                 "ON CONFLICT (sku) DO NOTHING;",
                 (item.sku, item.title, item.price),
             )
-
+ 
         for s in body.stock:
             cur.execute(
                 "INSERT INTO inventory "
-                "(inventory_id, sku, batch_id, quantity, shelf, time_added, time_alert) "
-                "VALUES (%s, %s, %s, %s, %s, now(), now());",
-                (new_id, s.sku, s.batch_id, s.quantity, s.shelf),
+                "(inventory_id, sku, quantity, shelf, time_added, time_alert) "
+                "VALUES (%s, %s, %s, %s, now(), now()) "
+                "ON CONFLICT (inventory_id, sku) DO UPDATE "
+                "SET quantity = inventory.quantity + EXCLUDED.quantity, "
+                "shelf = EXCLUDED.shelf, time_added = now(), time_alert = now();",
+                (new_id, s.sku, s.quantity, s.shelf),
             )
-
+ 
         return {
             "message": "Inventory imported successfully",
             "inventory_id": new_id,
-            "locatin": body.location,
+            "location": body.location,
             "items_received": len(body.items),
             "stock_rows_received": len(body.stock),
         }
