@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import InventoryScreen from "../inventory/inventory_screen";
+import InventoryScreen from "./inventory_screen";
 
 export default function InventoryPage() {
   const [searchParams] = useSearchParams();
