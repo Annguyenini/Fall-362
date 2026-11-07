@@ -1,14 +1,15 @@
 import json
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated
 
 import psycopg2
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
-from pydantic import BaseModel, PositiveInt, ValidationError
+from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from db import get_db
 
@@ -73,6 +74,11 @@ class InventoryImport(BaseModel):
     location: str
     items: list[ImportItem]
     stock: list[ImportStock]
+
+
+#model for discount
+class DiscountStock(BaseModel):
+    discount_percent: Decimal = Field(max_digits=5, decimal_places=2, ge=0,le=100)
 
 @app.get("/")
 async def root():
@@ -180,9 +186,19 @@ def delete_inventory(inventory_id: str, conn: DbConn):
 def get_inventory_items(conn: DbConn):
     with conn.cursor() as cur:
         cur.execute(
-            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
-            FROM inventory
-            ORDER BY inventory_id, sku''')
+            '''SELECT 
+                stock.inventory_id, 
+                stock.sku, 
+                item.title,
+                stock.quantity, 
+                item.price AS original_price,
+                stock.discount_percent,
+                ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
+                stock.shelf, 
+                stock.time_added,                 stock.time_alert
+            FROM inventory AS stock 
+            JOIN items AS item ON stock.sku = item.sku
+            ORDER BY stock.inventory_id, stock.sku;''')
         return cur.fetchall()
 
 #Return stock rows for one inventory from inventory_id
@@ -196,11 +212,22 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail = f"Inventory with id: {inventory_id} does not exits")
         #Get stock rows for inventory with matching inventory_id
+        #Join item information with stock information
         cur.execute(
-            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
-            FROM inventory
-            WHERE inventory_id = %s
-            ORDER BY sku''', (inventory_id,))
+            '''SELECT 
+                stock.inventory_id, 
+                stock.sku, 
+                item.title,
+                stock.quantity, 
+                item.price AS original_price,
+                stock.discount_percent,
+                ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
+                stock.shelf, 
+                stock.time_added,                 stock.time_alert
+            FROM inventory AS stock 
+            JOIN items AS item ON stock.sku = item.sku
+            WHERE stock.inventory_id = %s
+            ORDER BY stock.sku''', (inventory_id,))
         return cur.fetchall()
 
 #add stock to inventory (one row per item per location).
@@ -313,3 +340,28 @@ async def import_inventory(conn: DbConn, file: UploadFile):
             "items_received": len(body.items),
             "stock_rows_received": len(body.stock),
         }
+
+#apply discount to stock
+@app.patch("/inventory/{inventory_id}/{sku}/discount")
+def discount_stock(conn: DbConn, inventory_id: str, sku: int, body: DiscountStock):
+    with conn.cursor() as cur:
+        cur.execute(
+            '''
+            UPDATE inventory
+            SET discount_percent = %s
+            WHERE inventory_id = %s AND sku = %s
+            RETURNING inventory_id, sku, quantity, discount_percent; 
+            ''',
+            (body.discount_percent, inventory_id, sku,)
+        )
+        updated_stock = cur.fetchone()
+        if not updated_stock:
+            raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"No stock found for sku {sku} at this inventory.",
+                        )
+        return {
+            "message": "Discount Applied Successfully",
+            "stock": updated_stock
+        }
+    

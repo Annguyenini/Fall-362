@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS inventory(
     sku BIGINT,
     quantity BIGINT,
     shelf TEXT,
+
+    -- Warehouse Specific Discount: 0 means no discount
+    discount_percent NUMERIC(5,2) NOT NULL DEFAULT 0
+        CHECK (discount_percent >= 0 AND discount_percent <= 100),
     -- timestamptz is absolute moment/ UTC
     -- time alert using for discount
     time_added timestamptz,
