@@ -195,7 +195,8 @@ def get_inventory_items(conn: DbConn):
                 stock.discount_percent,
                 ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
                 stock.shelf, 
-                stock.time_added,                 stock.time_alert
+                stock.time_added,                 
+                stock.time_alert
             FROM inventory AS stock 
             JOIN items AS item ON stock.sku = item.sku
             ORDER BY stock.inventory_id, stock.sku;''')
@@ -223,7 +224,8 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
                 stock.discount_percent,
                 ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
                 stock.shelf, 
-                stock.time_added,                 stock.time_alert
+                stock.time_added,                 
+                stock.time_alert
             FROM inventory AS stock 
             JOIN items AS item ON stock.sku = item.sku
             WHERE stock.inventory_id = %s
