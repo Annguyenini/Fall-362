@@ -1,0 +1,27 @@
+name: dev-stage-deploy
+on:
+  # workflow_run:
+  #   workflows: ["Evironment testing for Backend"]
+  #   types:
+  #     - complete
+  push:
+    branches:
+      - devops
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Executing SSH using key
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PEM }}
+          port: ${{ secrets.PORT }}
+          script: |
+
+            whoami
