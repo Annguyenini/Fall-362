@@ -1,14 +1,15 @@
 import json
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated
 
 import psycopg2
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg2.extensions import connection as Connection
-from pydantic import BaseModel, PositiveInt, ValidationError
+from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from db import get_db
 
@@ -74,6 +75,11 @@ class InventoryImport(BaseModel):
     items: list[ImportItem]
     stock: list[ImportStock]
 
+
+#model for discount
+class DiscountStock(BaseModel):
+    discount_percent: Decimal = Field(max_digits=5, decimal_places=2, ge=0,le=100)
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -123,10 +129,17 @@ def create_item(body: ItemCreate, conn:DbConn):
 @app.delete("/item/{sku}")
 def delete_item(sku: int, conn:DbConn):
     with conn.cursor() as cur:
-        cur.execute(
-            "DELETE FROM items WHERE sku = %s RETURNING sku, title, price",
-            (sku, ),
-        )
+        try:
+            cur.execute(
+                "DELETE FROM items WHERE sku = %s RETURNING sku, title, price",
+                (sku, ),
+            )
+        except psycopg2.errors.ForeignKeyViolation:
+            #item still has stock somewhere
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Item with sku {sku} still has stock in one or more inventories. ",
+            )
         deleted_item = cur.fetchone()
         if not deleted_item:
             raise HTTPException(
@@ -180,9 +193,20 @@ def delete_inventory(inventory_id: str, conn: DbConn):
 def get_inventory_items(conn: DbConn):
     with conn.cursor() as cur:
         cur.execute(
-            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
-            FROM inventory
-            ORDER BY inventory_id, sku''')
+            '''SELECT 
+                stock.inventory_id, 
+                stock.sku, 
+                item.title,
+                stock.quantity, 
+                item.price AS original_price,
+                stock.discount_percent,
+                ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
+                stock.shelf, 
+                stock.time_added,                 
+                stock.time_alert
+            FROM inventory AS stock 
+            JOIN items AS item ON stock.sku = item.sku
+            ORDER BY stock.inventory_id, stock.sku;''')
         return cur.fetchall()
 
 #Return stock rows for one inventory from inventory_id
@@ -196,11 +220,23 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail = f"Inventory with id: {inventory_id} does not exits")
         #Get stock rows for inventory with matching inventory_id
+        #Join item information with stock information
         cur.execute(
-            '''SELECT inventory_id, sku, quantity, shelf, time_added, time_alert
-            FROM inventory
-            WHERE inventory_id = %s
-            ORDER BY sku''', (inventory_id,))
+            '''SELECT 
+                stock.inventory_id, 
+                stock.sku, 
+                item.title,
+                stock.quantity, 
+                item.price AS original_price,
+                stock.discount_percent,
+                ROUND(item.price::numeric * (1 - discount_percent/100),2) AS discount_price,
+                stock.shelf, 
+                stock.time_added,                 
+                stock.time_alert
+            FROM inventory AS stock 
+            JOIN items AS item ON stock.sku = item.sku
+            WHERE stock.inventory_id = %s
+            ORDER BY stock.sku''', (inventory_id,))
         return cur.fetchall()
 
 #add stock to inventory (one row per item per location).
@@ -208,17 +244,25 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
 @app.post("/inventory", status_code=status.HTTP_201_CREATED)
 def add_stock(body: StockCreate, conn:DbConn):
     with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO inventory (inventory_id, sku, quantity, shelf, time_added, time_alert) "
-            "VALUES (%s, %s, %s, %s, now(), %s) "
-            "ON CONFLICT (inventory_id, sku) DO UPDATE "
-            "SET quantity = inventory.quantity + EXCLUDED.quantity, "
-            "shelf = EXCLUDED.shelf, "
-            "time_added = now(), "
-            "time_alert = COALESCE(EXCLUDED.time_alert, inventory.time_alert) "
-            "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
-            (body.inventory_id, body.sku, body.quantity, body.shelf, body.time_alert),
-        )
+        try:
+            cur.execute(
+                "INSERT INTO inventory (inventory_id, sku, quantity, shelf, time_added, time_alert) "
+                "VALUES (%s, %s, %s, %s, now(), %s) "
+                "ON CONFLICT (inventory_id, sku) DO UPDATE "
+                "SET quantity = inventory.quantity + EXCLUDED.quantity, "
+                "shelf = EXCLUDED.shelf, "
+                "time_added = now(), "
+                "time_alert = COALESCE(EXCLUDED.time_alert, inventory.time_alert) "
+                "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
+                (body.inventory_id, body.sku, body.quantity, body.shelf, body.time_alert),
+            )
+        except psycopg2.errors.ForeignKeyViolation:
+            #sku not in items, or inventory_id not a real location
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Item with sku {body.sku} is not in the catalog, "
+                       f"or inventory {body.inventory_id} does not exist. ",
+            )
         new_stock = cur.fetchone()
     return {"message": "Stock added successfully", "stock": new_stock}
 
@@ -252,7 +296,7 @@ def remove_stock(inventory_id: str, sku: int, conn:DbConn):
             "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
             (inventory_id, sku),
         )
-        deleted_stock=cur.fetchone()
+        deleted_stock = cur.fetchone()
         if not deleted_stock:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -294,6 +338,17 @@ async def import_inventory(conn: DbConn, file: UploadFile):
                 "ON CONFLICT (sku) DO NOTHING;",
                 (item.sku, item.title, item.price),
             )
+
+        stock_skus = {s.sku for s in body.stock}
+        if stock_skus:
+            cur.execute("SELECT sku FROM items WHERE sku = ANY(%s);", (list(stock_skus),))
+            existing = {row["sku"] for row in cur.fetchall()}
+            missing = sorted(stock_skus - existing)
+            if missing:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Stock references SKUs not in the catalog: {missing}",
+                )
  
         for s in body.stock:
             cur.execute(
@@ -313,3 +368,28 @@ async def import_inventory(conn: DbConn, file: UploadFile):
             "items_received": len(body.items),
             "stock_rows_received": len(body.stock),
         }
+
+#apply discount to stock
+@app.patch("/inventory/{inventory_id}/{sku}/discount")
+def discount_stock(conn: DbConn, inventory_id: str, sku: int, body: DiscountStock):
+    with conn.cursor() as cur:
+        cur.execute(
+            '''
+            UPDATE inventory
+            SET discount_percent = %s
+            WHERE inventory_id = %s AND sku = %s
+            RETURNING inventory_id, sku, quantity, discount_percent; 
+            ''',
+            (body.discount_percent, inventory_id, sku,)
+        )
+        updated_stock = cur.fetchone()
+        if not updated_stock:
+            raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"No stock found for sku {sku} at this inventory.",
+                        )
+        return {
+            "message": "Discount Applied Successfully",
+            "stock": updated_stock
+        }
+    
