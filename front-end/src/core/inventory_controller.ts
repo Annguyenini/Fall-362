@@ -50,6 +50,28 @@ class InventoryController{
     }
   }
 
+  async removeStockFromInventory(inventoryId: string, sku: number): Promise<void> {
+    const response = await fetch(API.REMOVE_STOCK_FROM_INVENTORY_API(inventoryId, sku), {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not remove item from this inventory.");
+    }
+  }
+
+  async setInventoryDiscount(inventoryId: string, sku: number, discountPercent: number): Promise<void> {
+    const response = await fetch(API.SET_INVENTORY_DISCOUNT_API(inventoryId, sku), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ discount_percent: discountPercent }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not set item discount.");
+    }
+  }
+
   async getInventoryItems(inventory_id: string) {
     try {
       const response = await fetch(API.GET_ITEMS_FROM_INVENTORY_API(inventory_id), ({
@@ -91,7 +113,7 @@ class InventoryController{
     }
     return {
       "data": data,
-      "error":null
+        "error":null
     }
   }
 
