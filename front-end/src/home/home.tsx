@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import inventoryController from "../core/inventory_controller";
-import "./home.css";
+import "../styles/home.css";
 
 type Inventory = { inventory_id: string; location: string };
 
@@ -36,6 +36,7 @@ export default function Home() {
   <nav aria-label="Main">
     <NavLink to="/home">Home</NavLink>
     <NavLink to="/home#inventories">Inventory</NavLink>
+    <NavLink to="/items">Items</NavLink>
   </nav>
 </header>
 

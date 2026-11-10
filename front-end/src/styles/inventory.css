@@ -170,11 +170,11 @@
 }
 
 .tool-button:hover {
-  background: #f1f1f1;
+  background: rgba(255, 235, 120, 0.3);
 }
 
 .tool-button.active {
-  background: #e5e5e5;
+  background:  rgba(255, 235, 200, 0.3);
 
   font-weight: 600;
 }
@@ -252,7 +252,7 @@
 }
 
 .items-table tbody tr:hover {
-  background: #fafafa;
+  background: rgba(255, 235, 120, 0.3);
 }
 
 .items-table td:first-child {
@@ -272,7 +272,10 @@
   cursor: pointer;
 }
 
-.item-sku-button:hover { text-decoration-color: currentColor; }
+.item-sku-button:hover {
+  background: rgba(255, 235, 120, 0.3);
+  text-decoration-color: currentColor;
+}
 
 .item-details {
   margin-top: 18px;
@@ -312,6 +315,99 @@
 .item-details-grid dt { color: #888; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .item-details-grid dd { margin: 3px 0 0; overflow-wrap: anywhere; }
 .item-details-error { color: #b3261e; }
+
+.item-action-error {
+  margin: 0 0 12px;
+  color: #b3261e;
+  font-size: 13px;
+}
+
+.item-action-success {
+  margin: 0 0 12px;
+  color: #237a3b;
+  font-size: 13px;
+}
+
+.items-actions-cell {
+  position: relative;
+  width: 1%;
+  text-align: right;
+}
+
+.item-tools-trigger {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.item-tools-trigger:hover,
+.item-tools-trigger[aria-expanded="true"] {
+  border-color: #aaa;
+  background: rgba(255, 235, 120, 0.3);
+}
+
+.item-tools-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  position: absolute;
+  z-index: 5;
+  top: calc(100% - 4px);
+  right: 8px;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  box-shadow: 0 8px 22px #0003;
+  text-align: left;
+}
+
+.item-tools-remove {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #b3261e;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-tools-action {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-tools-action:hover:not(:disabled) { background: rgba(255, 235, 120, 0.3); }
+.item-tools-action:disabled { opacity: 0.6; cursor: wait; }
+
+.item-tools-remove:hover:not(:disabled) { background: rgba(255, 235, 120, 0.3); }
+.item-tools-remove:disabled { opacity: 0.6; cursor: wait; }
 
 /* ADD ITEM TOOL */
 .add-item-page {
@@ -354,6 +450,63 @@
   padding: 24px;
   text-align: left;
 }
+
+.add-item-form-content {
+  padding: 24px;
+  text-align: left;
+}
+
+.add-stock-options {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.65fr) minmax(180px, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.add-stock-options label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.add-stock-options input,
+.add-stock-options select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+  font-weight: 400;
+}
+
+.catalog-item-select-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.catalog-item-select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+}
+
+.catalog-item-select:focus-visible { outline: 2px solid #777; outline-offset: 2px; }
+.catalog-item-select:disabled { opacity: 0.65; cursor: wait; }
+.catalog-item-hint,
+.form-status { margin-top: 10px; color: #777; font-size: 13px; }
 
 .add-item-grid {
   display: grid;
@@ -423,7 +576,9 @@
 
 @media (max-width: 560px) {
   .add-item-header,
-  .add-item-card form { padding: 18px; }
+  .add-item-card form,
+  .add-item-form-content { padding: 18px; }
+  .add-stock-options { grid-template-columns: 1fr; gap: 14px; }
   .add-item-grid { grid-template-columns: 1fr; gap: 14px; }
   .add-item-grid .full-width { grid-column: auto; }
   .add-item-actions button { width: 100%; }
