@@ -1,12 +1,8 @@
 name: dev-stage-deploy
 on:
-  # workflow_run:
-  #   workflows: ["Evironment testing for Backend"]
-  #   types:
-  #     - complete
   push:
     branches:
-      - devops
+      - main
 
 jobs:
   deploy-server:
@@ -19,9 +15,23 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USERNAME }}
+          username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PEM }}
           port: ${{ secrets.PORT }}
           script: |
+            cd Fall-362
+            git fetch origin main
+            git reset --hard origin/main
+            echo "Deploying backend..."
+            cd back-end
+            docker compose up -d --build
 
-            whoami
+            echo "Deploying frontend..."
+            cd ../front-end
+            docker compose up -d --build
+
+            echo "Deploying database..."
+            cd ../database
+            docker compose -f docker-compose_test.yaml up -d --build
+
+            echo "Deployment completed!"
