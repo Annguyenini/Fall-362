@@ -1,2 +1,5 @@
 .env
 venv/
+.secret
+events.json
+bin/

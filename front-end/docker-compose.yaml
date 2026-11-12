@@ -1,0 +1,13 @@
+services:
+  front-end:
+    container_name: front-end
+    build: .
+    ports:
+      - "5173:5173"
+
+    networks:
+      - inventory
+networks:
+  inventory:
+    external: true
+    name: inventory

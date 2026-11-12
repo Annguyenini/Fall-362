@@ -1,6 +1,8 @@
 import { InventoryStock } from '../data-shapes/inventory-stock'
 import * as API from './API/api'
 
+export type CatalogItem = { sku: number; title: string; price: number };
+
 class InventoryController{
   // this class will manage calling backend feature related to a specific InventoryController
   //
@@ -19,6 +21,55 @@ class InventoryController{
       throw new Error(response.status === 404 ? "Item not found." : "Failed to load item details.");
     }
     return await response.json() as { sku: number; title: string; price: number };
+  }
+
+  async getAllItems(): Promise<CatalogItem[]> {
+    const response = await fetch(API.GET_ALL_ITEMS_API());
+    if (!response.ok) throw new Error("Could not load items.");
+    return await response.json() as CatalogItem[];
+  }
+
+  async createCatalogItem(item: CatalogItem): Promise<CatalogItem> {
+    const response = await fetch(API.CREATE_ITEM_API(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not add item.");
+    }
+    return data.item as CatalogItem;
+  }
+
+  async deleteCatalogItem(sku: number): Promise<void> {
+    const response = await fetch(API.DELETE_ITEM_API(sku), { method: "DELETE" });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not delete item.");
+    }
+  }
+
+  async removeStockFromInventory(inventoryId: string, sku: number): Promise<void> {
+    const response = await fetch(API.REMOVE_STOCK_FROM_INVENTORY_API(inventoryId, sku), {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not remove item from this inventory.");
+    }
+  }
+
+  async setInventoryDiscount(inventoryId: string, sku: number, discountPercent: number): Promise<void> {
+    const response = await fetch(API.SET_INVENTORY_DISCOUNT_API(inventoryId, sku), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ discount_percent: discountPercent }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not set item discount.");
+    }
   }
 
   async getInventoryItems(inventory_id: string) {
@@ -62,7 +113,7 @@ class InventoryController{
     }
     return {
       "data": data,
-      "error":null
+        "error":null
     }
   }
 
