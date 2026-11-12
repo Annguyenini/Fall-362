@@ -2,3 +2,4 @@
 venv/
 .secret
 events.json
+bin/

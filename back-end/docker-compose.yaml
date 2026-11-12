@@ -1,0 +1,17 @@
+services:
+  server:
+    container_name: fast-server
+    build: .
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+    networks:
+      - inventory
+
+
+networks:
+  inventory:
+    external: true
+    name: inventory

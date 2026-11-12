@@ -12,6 +12,11 @@ services:
     ports:
       # using different port to not have conflict or dont even map port
       - "5435:5432"
-
+    networks:
+      - inventory
+networks:
+  inventory:
+    external: true
+    name: inventory
 # no volume, data go wipe if kill and load the default fake data when created
 #
