@@ -1,0 +1,37 @@
+name: dev-stage-deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Executing SSH using key
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PEM }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd Fall-362
+            git fetch origin main
+            git reset --hard origin/main
+            echo "Deploying backend..."
+            cd back-end
+            docker compose up -d --build
+
+            echo "Deploying frontend..."
+            cd ../front-end
+            docker compose up -d --build
+
+            echo "Deploying database..."
+            cd ../database
+            docker compose -f docker-compose_test.yaml up -d --build
+
+            echo "Deployment completed!"
