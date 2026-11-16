@@ -8,7 +8,7 @@ image_name="${IMAGE_NAME:?IMAGE_NAME is required}"
 image_version="${IMAGE_VERSION:?IMAGE_VERSION is required}"
 
 
-cd ./"$repo_path"/"$backend_repo_path"
+cd "$backend_repo_path"
 docker build -t "$image_name":"$image_version"
 
 IMAGE_NAME=$image_name IMAGE_VERSION=$image_version docker compose up --build -d

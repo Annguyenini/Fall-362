@@ -23,13 +23,16 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PEM }}
           port: ${{ secrets.PORT }}
+          envs: REPO_PATH,BACKEND_REPO_PATH,IMAGE_NAME,IMAGE_VERSION
           script: |
             set -e
             cd Fall-362
-            git fetch origin main
-            git reset --hard origin/main
-
+            git fetch origin devops-deploy-fix
+            git reset --hard origin/devops-deploy-fix
+            echo "$REPO_PATH"
+            ls
             echo "Deploy back end..."
+
 
             chmod +x .github/workflows/builds/build-backend.sh
             REPO_PATH="$REPO_PATH" \
