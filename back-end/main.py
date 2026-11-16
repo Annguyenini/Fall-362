@@ -129,10 +129,17 @@ def create_item(body: ItemCreate, conn:DbConn):
 @app.delete("/item/{sku}")
 def delete_item(sku: int, conn:DbConn):
     with conn.cursor() as cur:
-        cur.execute(
-            "DELETE FROM items WHERE sku = %s RETURNING sku, title, price",
-            (sku, ),
-        )
+        try:
+            cur.execute(
+                "DELETE FROM items WHERE sku = %s RETURNING sku, title, price",
+                (sku, ),
+            )
+        except psycopg2.errors.ForeignKeyViolation:
+            #item still has stock somewhere
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Item with sku {sku} still has stock in one or more inventories. ",
+            )
         deleted_item = cur.fetchone()
         if not deleted_item:
             raise HTTPException(
@@ -237,17 +244,25 @@ def get_items_in_inventory(inventory_id: str, conn: DbConn):
 @app.post("/inventory", status_code=status.HTTP_201_CREATED)
 def add_stock(body: StockCreate, conn:DbConn):
     with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO inventory (inventory_id, sku, quantity, shelf, time_added, time_alert) "
-            "VALUES (%s, %s, %s, %s, now(), %s) "
-            "ON CONFLICT (inventory_id, sku) DO UPDATE "
-            "SET quantity = inventory.quantity + EXCLUDED.quantity, "
-            "shelf = EXCLUDED.shelf, "
-            "time_added = now(), "
-            "time_alert = COALESCE(EXCLUDED.time_alert, inventory.time_alert) "
-            "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
-            (body.inventory_id, body.sku, body.quantity, body.shelf, body.time_alert),
-        )
+        try:
+            cur.execute(
+                "INSERT INTO inventory (inventory_id, sku, quantity, shelf, time_added, time_alert) "
+                "VALUES (%s, %s, %s, %s, now(), %s) "
+                "ON CONFLICT (inventory_id, sku) DO UPDATE "
+                "SET quantity = inventory.quantity + EXCLUDED.quantity, "
+                "shelf = EXCLUDED.shelf, "
+                "time_added = now(), "
+                "time_alert = COALESCE(EXCLUDED.time_alert, inventory.time_alert) "
+                "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
+                (body.inventory_id, body.sku, body.quantity, body.shelf, body.time_alert),
+            )
+        except psycopg2.errors.ForeignKeyViolation:
+            #sku not in items, or inventory_id not a real location
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Item with sku {body.sku} is not in the catalog, "
+                       f"or inventory {body.inventory_id} does not exist. ",
+            )
         new_stock = cur.fetchone()
     return {"message": "Stock added successfully", "stock": new_stock}
 
@@ -281,7 +296,7 @@ def remove_stock(inventory_id: str, sku: int, conn:DbConn):
             "RETURNING inventory_id, sku, quantity, shelf, time_added, time_alert;",
             (inventory_id, sku),
         )
-        deleted_stock=cur.fetchone()
+        deleted_stock = cur.fetchone()
         if not deleted_stock:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -323,6 +338,17 @@ async def import_inventory(conn: DbConn, file: UploadFile):
                 "ON CONFLICT (sku) DO NOTHING;",
                 (item.sku, item.title, item.price),
             )
+
+        stock_skus = {s.sku for s in body.stock}
+        if stock_skus:
+            cur.execute("SELECT sku FROM items WHERE sku = ANY(%s);", (list(stock_skus),))
+            existing = {row["sku"] for row in cur.fetchall()}
+            missing = sorted(stock_skus - existing)
+            if missing:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Stock references SKUs not in the catalog: {missing}",
+                )
  
         for s in body.stock:
             cur.execute(

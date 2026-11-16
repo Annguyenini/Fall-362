@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS inventory(
     time_alert timestamptz,
     -- CONSTRANT
     CONSTRAINT inventory_key FOREIGN KEY(inventory_id) REFERENCES inventories (inventory_id) ON DELETE CASCADE,
+    CONSTRAINT inventory_sku_fk FOREIGN KEY (sku) REFERENCES items (sku),
     CONSTRAINT inventory_identity UNIQUE (inventory_id, sku)
     );
 CREATE INDEX item_idx ON inventory (inventory_id, sku);
