@@ -1,7 +1,7 @@
 services:
   front-end:
     container_name: front-end
-    build: .
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}
     ports:
       - "5173:5173"
 
