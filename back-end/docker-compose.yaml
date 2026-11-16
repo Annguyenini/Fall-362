@@ -1,11 +1,8 @@
 services:
   server:
     container_name: fast-server
-<<<<<<< HEAD
-    build: .
-=======
+
     image: ${IMAGE_NAME}:${IMAGE_VERSION}
->>>>>>> 0af41a8 (WIP:making deployment versions)
     ports:
       - "8000:8000"
 
