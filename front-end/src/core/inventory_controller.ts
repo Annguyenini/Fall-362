@@ -71,6 +71,17 @@ class InventoryController{
       throw new Error(data.detail ?? "Could not set item discount.");
     }
   }
+  async modifyStock(inventoryId: string, sku: number, new_data:object): Promise<void> {
+    const response = await fetch(API.MODIFY_STOCK(inventoryId, sku), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(new_data),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not set item new quantity.");
+    }
+  }
 
   async getInventoryItems(inventory_id: string) {
     try {
