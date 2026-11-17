@@ -78,7 +78,7 @@ class InventoryImport(BaseModel):
 
 #model for discount
 class DiscountStock(BaseModel):
-    discount_percent: Decimal = Field(max_digits=5, decimal_places=2, ge=0,le=100)
+    discount_percent: Decimal = Field(max_digits = 5, decimal_places = 2, ge = 0,le = 100)
 
 @app.get("/")
 async def root():
@@ -369,27 +369,28 @@ async def import_inventory(conn: DbConn, file: UploadFile):
             "stock_rows_received": len(body.stock),
         }
 
+
 #apply discount to stock
 @app.patch("/inventory/{inventory_id}/{sku}/discount")
 def discount_stock(conn: DbConn, inventory_id: str, sku: int, body: DiscountStock):
     with conn.cursor() as cur:
         cur.execute(
-            '''
-            UPDATE inventory
-            SET discount_percent = %s
-            WHERE inventory_id = %s AND sku = %s
-            RETURNING inventory_id, sku, quantity, discount_percent; 
-            ''',
+            "UPDATE inventory "
+            "SET discount_percent = %s "
+            "WHERE inventory_id = %s AND sku = %s "
+            "RETURNING inventory_id, sku, quantity, discount_percent; ",
             (body.discount_percent, inventory_id, sku,)
         )
+
         updated_stock = cur.fetchone()
         if not updated_stock:
             raise HTTPException(
-                            status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"No stock found for sku {sku} at this inventory.",
-                        )
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No stock found for sku {sku} at this inventory.",
+                )
         return {
             "message": "Discount Applied Successfully",
             "stock": updated_stock
         }
+    
     
