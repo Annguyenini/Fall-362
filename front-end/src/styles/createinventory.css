@@ -1,0 +1,28 @@
+.inv-main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
+}
+.inv-main h1 {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem;
+}
+
+.create-form { display: flex; flex-direction: column; gap: 0.5rem; max-width: 480px; }
+.create-form label { font-weight: 500; margin-top: 0.5rem; }
+.create-form input {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+.create-form input:focus-visible { border-color: var(--ink); }
+.create-form .actions { margin-top: 0.5rem; }
+
+.btn { cursor: pointer; font: inherit; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
