@@ -1,7 +1,8 @@
 services:
   server:
     container_name: fast-server
-    build: .
+
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}
     ports:
       - "8000:8000"
 

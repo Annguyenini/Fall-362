@@ -12,26 +12,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Executing SSH using key
+        env:
+          REPO_PATH: Fall-362
+          BACKEND_REPO_PATH: back-end
+          FRONTEND_REPO_PATH: front-end
+          BACK_END_IMAGE_NAME: fast-server
+          FRONT_END_IMAGE_NAME: react-server
+          IMAGE_VERSION: ${{ github.sha }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PEM }}
           port: ${{ secrets.PORT }}
+          envs: REPO_PATH,BACKEND_REPO_PATH,BACK_END_IMAGE_NAME,IMAGE_VERSION,FRONT_END_IMAGE_NAME,FRONTEND_REPO_PATH
           script: |
-            cd Fall-362
-            git fetch origin main
-            git reset --hard origin/main
-            echo "Deploying backend..."
-            cd back-end
-            docker compose up -d --build
+            set -e
+            cd "$REPO_PATH"
+            git fetch origin devops-deploy-fix
+            git reset --hard origin/devops-deploy-fix
+
+            echo "Deploy back end..."
+
+            chmod +x .github/workflows/builds/build-backend.sh
+            REPO_PATH="$REPO_PATH" \
+            BACKEND_REPO_PATH="$BACKEND_REPO_PATH" \
+            IMAGE_NAME="$BACK_END_IMAGE_NAME" \
+            IMAGE_VERSION="$IMAGE_VERSION" \
+            bash .github/workflows/builds/build-backend.sh
+
+
 
             echo "Deploying frontend..."
-            cd ../front-end
-            docker compose up -d --build
+            chmod +x .github/workflows/builds/build-frontend.sh
+            REPO_PATH="$REPO_PATH" \
+            FRONTEND_REPO_PATH="$FRONTEND_REPO_PATH" \
+            IMAGE_NAME="$FRONT_END_IMAGE_NAME" \
+            IMAGE_VERSION="$IMAGE_VERSION" \
+            bash .github/workflows/builds/build-frontend.sh
+
+
 
             echo "Deploying database..."
-            cd ../database
+            cd database
             docker compose -f docker-compose_test.yaml up -d --build
 
             echo "Deployment completed!"
