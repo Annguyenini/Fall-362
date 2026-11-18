@@ -47,6 +47,7 @@ export default function Home() {
             <p>Track stock levels, catch low items early, and keep every count in one place.</p>
             <div className="actions">
               <Link className="btn btn-primary" to="/home#inventories">View inventory</Link>
+              <Link className="btn btn-secondary" to="/create-inventory">Create inventory</Link>
               {/*<Link className="btn btn-secondary" to="/add-item">Add an item</Link>*/}
             </div>
           </div>

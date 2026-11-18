@@ -276,7 +276,29 @@
   background: rgba(255, 235, 120, 0.3);
   text-decoration-color: currentColor;
 }
+.item-quantity-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: #888;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
 
+.item-quantity-button:hover {
+  background: rgba(120, 200, 255, 0.2);
+  text-decoration-color: currentColor;
+}
+
+.item-quantity-button:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
 .item-details {
   margin-top: 18px;
   padding: 18px;

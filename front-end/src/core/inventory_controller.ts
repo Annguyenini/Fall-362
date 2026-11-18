@@ -15,6 +15,19 @@ class InventoryController{
     return await response.json() as { inventory_id: string; location: string }[];
   }
 
+  async createInventory(location: string): Promise<{ inventory_id: string; location: string }> {
+  const response = await fetch(API.CREATE_INVENTORY_API(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ location }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail ?? "Could not create inventory.");
+  }
+  return (data.inventory ?? data) as { inventory_id: string; location: string };
+}
+
   async getItem(sku: number) {
     const response = await fetch(API.GET_ITEM_API(sku), { method: "GET" });
     if (!response.ok) {
@@ -69,6 +82,17 @@ class InventoryController{
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.detail ?? "Could not set item discount.");
+    }
+  }
+  async modifyStock(inventoryId: string, sku: number, new_data:object): Promise<void> {
+    const response = await fetch(API.MODIFY_STOCK(inventoryId, sku), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(new_data),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Could not set item new quantity.");
     }
   }
 

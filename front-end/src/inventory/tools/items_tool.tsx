@@ -22,6 +22,7 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [removingSku, setRemovingSku] = useState<number | null>(null);
   const [discountingSku, setDiscountingSku] = useState<number | null>(null);
+  const [modifyingSku,setModifyingSku] = useState<number |null>(null)
   const [refreshKey, setRefreshKey] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -126,7 +127,26 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
       setDiscountingSku(null);
     }
   }
+  async function modifyingStockQuantity(item:InventoryStock) {
+    const new_quantity = Number(window.prompt(
+      "Enter a whole-number of new stock quantity:"
+    ));
 
+    try {
+      if (!new_quantity || new_quantity < 0) throw new Error("Can not set new quantity to a negative number")
+      item.quantity= new_quantity
+      await inventory_controller.modifyStock(inventoryId, item.sku, item)
+      setActionSuccess(`Modified quantity for SKU ${item.sku}.`);
+      setOpenMenuId(null);
+      setRefreshKey((current) => current + 1);
+    }
+    catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not modify quantity");
+    }
+    finally {
+      setModifyingSku(null)
+    }
+  }
   if (itemsLoading && !result) {
     return <p role="status">Loading inventory items…</p>;
   }
@@ -180,7 +200,17 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
                   </td>
                   <td>{item.original_price == null ? "—" : new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number(item.original_price))}</td>
                   <td>{item.discount_price == null ? "—" : new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number(item.discount_price))}</td>
-                  <td>{item.quantity}</td>
+                  <td>
+                    <button
+                      className="item-quantity-button"
+                      type="button"
+                      aria-label={`Modify quantity for SKU ${item.sku}`}
+                      onClick={() => modifyingStockQuantity(item)}
+                    >
+                      {item.quantity ?? 0}
+                    </button>
+                    {/*{item.quantity*/}
+                      </td>
                   <td>{item.shelf ?? "—"}</td>
                   <td>{item.time_added ?? "—"}</td>
                   <td>{item.time_alert ?? "—"}</td>
@@ -215,6 +245,7 @@ export default function ItemsTool({ inventoryId }: ItemsToolProps) {
                         >
                           {removingSku === item.sku ? "Removing…" : "Remove item"}
                         </button>
+
                       </div>
                     )}
                   </td>
